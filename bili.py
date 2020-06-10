@@ -1,12 +1,11 @@
 # -*- encoding: utf-8 -*-
 
 import json
+import sqlite3
 import struct
 import time
 import traceback
 import zlib
-import sqlite3
-
 from collections import namedtuple
 from threading import Thread
 
@@ -23,8 +22,17 @@ def save_welcome(msg, roomid):
     with get_sql_conn() as conn:
         data = msg.get('data')
         conn.cursor()
-        conn.execute("insert into danmu_welcome(uid, uname, roomid) values(?, ?, ?)",
+        conn.execute('insert into danmu_welcome(uid, uname, roomid) values(?, ?, ?)',
                      (data.get('uid'), data.get('uname'), roomid))
+        conn.commit()
+
+
+def save_welcome_guard(msg, roomid):
+    with get_sql_conn() as conn:
+        data = msg.get('data')
+        conn.cursor()
+        conn.execute('insert into danmu_welcome(uid, uname, roomid) values(?, ?, ?)',
+                     (data.get('uid'), data.get('username'), roomid))
         conn.commit()
 
 
@@ -32,7 +40,7 @@ def save_danmu(msg, roomid):
     with get_sql_conn() as conn:
         info = msg.get('info')
         conn.cursor()
-        conn.execute("INSERT INTO danmu ( uid, uname, danmu, send_time, roomid) VALUES (?,?,?,?,?);",
+        conn.execute('INSERT INTO danmu ( uid, uname, danmu, send_time, roomid) VALUES (?,?,?,?,?);',
                      (info[2][0], info[2][1], info[1], info[9]['ts'], roomid))
         conn.commit()
 
@@ -42,7 +50,7 @@ def save_gift(msg, roomid):
         data = msg.get('data')
         conn.cursor()
         conn.execute(
-            "INSERT INTO danmu_gift ( uid, uname, giftname, giftid, coin_type, price, num, total_coin, gift_time, roomid) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
+            'INSERT INTO danmu_gift ( uid, uname, giftname, giftid, coin_type, price, num, total_coin, gift_time, roomid) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);',
             (data.get('uid'), data.get('uname'), data.get('giftName'), data.get('giftId'), data.get('coin_type'),
              data.get('price'), data.get('num'), data.get('total_coin'), data.get('timestamp'), roomid))
         conn.commit()
@@ -53,7 +61,7 @@ def save_guard(msg, roomid):
         data = msg.get('data')
         conn.cursor()
         conn.execute(
-            "INSERT INTO danmu_guard (uid, uname, guard_level, num, price, gift_id, gift_name, start_time, end_time, roomid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
+            'INSERT INTO danmu_guard (uid, uname, guard_level, num, price, gift_id, gift_name, start_time, end_time, roomid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);',
             (data.get('uid'), data.get('username'), data.get('guard_level'), data.get('num'), data.get('price'),
              data.get('gift_id'), data.get('gift_name'), data.get('start_time'), data.get('end_time'), roomid))
         conn.commit()
@@ -145,6 +153,9 @@ class BLiveDMClient:
                 if cmd == 'WELCOME':
                     save_welcome(msg, self.roomid)
                     pass
+                elif cmd == 'WELCOME_GUARD':
+                    save_welcome_guard(msg, self.roomid)
+                    pass
                 elif cmd == 'DANMU_MSG':
                     save_danmu(msg, self.roomid)
                     pass
@@ -213,5 +224,5 @@ def start(roomid):
         time.sleep(10)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     start(5414666)
