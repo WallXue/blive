@@ -1,6 +1,7 @@
 # -*- encoding: utf-8 -*-
 
 import json
+import os
 import sqlite3
 import struct
 import time
@@ -12,59 +13,60 @@ from threading import Thread
 import requests
 import websocket
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+db_path = os.path.join(BASE_DIR, "danmu.sqlite")
 
-def get_sql_conn():
-    conn = sqlite3.connect('danmu.sqlite')
-    return conn
+
+def execute_in_sqlite(fun):
+    db = None
+    try:
+        db = sqlite3.connect(db_path)
+        conn = db.cursor()
+        fun(conn)
+        db.commit()
+    except Exception as e:
+        print('数据库异常')
+        traceback.print_exc()
+    finally:
+        if db:
+            db.close()
 
 
 def save_welcome(msg, roomid):
-    with get_sql_conn() as conn:
-        data = msg.get('data')
-        conn.cursor()
-        conn.execute('insert into danmu_welcome(uid, uname, roomid) values(?, ?, ?)',
-                     (data.get('uid'), data.get('uname'), roomid))
-        conn.commit()
+    data = msg.get('data')
+    execute_in_sqlite(lambda conn: conn.execute('insert into danmu_welcome(uid, uname, roomid) values(?, ?, ?)',
+                                                (data.get('uid'), data.get('uname'), roomid)))
 
 
 def save_welcome_guard(msg, roomid):
-    with get_sql_conn() as conn:
-        data = msg.get('data')
-        conn.cursor()
-        conn.execute('insert into danmu_welcome(uid, uname, roomid) values(?, ?, ?)',
-                     (data.get('uid'), data.get('username'), roomid))
-        conn.commit()
+    data = msg.get('data')
+    execute_in_sqlite(lambda conn: conn.execute('insert into danmu_welcome(uid, uname, roomid) values(?, ?, ?)',
+                                                (data.get('uid'), data.get('username'), roomid)))
 
 
 def save_danmu(msg, roomid):
-    with get_sql_conn() as conn:
-        info = msg.get('info')
-        conn.cursor()
-        conn.execute('INSERT INTO danmu ( uid, uname, danmu, send_time, roomid) VALUES (?,?,?,?,?);',
-                     (info[2][0], info[2][1], info[1], info[9]['ts'], roomid))
-        conn.commit()
+    info = msg.get('info')
+    execute_in_sqlite(
+        lambda conn: conn.execute('INSERT INTO danmu ( uid, uname, danmu, send_time, roomid) VALUES (?,?,?,?,?);',
+                                  (info[2][0], info[2][1], info[1], info[9]['ts'], roomid)))
 
 
 def save_gift(msg, roomid):
-    with get_sql_conn() as conn:
-        data = msg.get('data')
-        conn.cursor()
-        conn.execute(
+    data = msg.get('data')
+    execute_in_sqlite(
+        lambda conn: conn.execute(
             'INSERT INTO danmu_gift ( uid, uname, giftname, giftid, coin_type, price, num, total_coin, gift_time, roomid) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);',
             (data.get('uid'), data.get('uname'), data.get('giftName'), data.get('giftId'), data.get('coin_type'),
-             data.get('price'), data.get('num'), data.get('total_coin'), data.get('timestamp'), roomid))
-        conn.commit()
+             data.get('price'), data.get('num'), data.get('total_coin'), data.get('timestamp'), roomid)))
 
 
 def save_guard(msg, roomid):
-    with get_sql_conn() as conn:
-        data = msg.get('data')
-        conn.cursor()
-        conn.execute(
+    data = msg.get('data')
+    execute_in_sqlite(
+        lambda conn: conn.execute(
             'INSERT INTO danmu_guard (uid, uname, guard_level, num, price, gift_id, gift_name, start_time, end_time, roomid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);',
             (data.get('uid'), data.get('username'), data.get('guard_level'), data.get('num'), data.get('price'),
-             data.get('gift_id'), data.get('gift_name'), data.get('start_time'), data.get('end_time'), roomid))
-        conn.commit()
+             data.get('gift_id'), data.get('gift_name'), data.get('start_time'), data.get('end_time'), roomid)))
 
 
 class BLiveDMClient:
