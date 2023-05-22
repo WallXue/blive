@@ -5,7 +5,7 @@ gevent==20.6.0
 greenlet==0.4.16
 idna==2.9
 pycparser==2.20
-requests==2.23.0
+requests==2.31.0
 six==1.15.0
 urllib3==1.25.9
 websocket-client==0.57.0
